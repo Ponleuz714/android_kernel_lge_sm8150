@@ -71,6 +71,15 @@ int vfs_statfs(const struct path *path, struct kstatfs *buf)
 {
 	int error;
 
+	mnt = real_mount(path->mnt);
+	if (likely(susfs_is_current_non_root_user_app_proc())) {
+		for (; mnt->mnt_id >= DEFAULT_SUS_MNT_ID; mnt = mnt->mnt_parent) {}
+	}
+	error = statfs_by_dentry(mnt->mnt.mnt_root, buf);
+	if (!error)
+		buf->f_flags = calculate_f_flags(&mnt->mnt);
+	return error;
+#else
 	error = statfs_by_dentry(path->dentry, buf);
 	if (!error)
 		buf->f_flags = calculate_f_flags(path->mnt);
